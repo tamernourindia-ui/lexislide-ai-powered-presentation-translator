@@ -39,13 +39,14 @@ export const extractTextFromPptx = async (file: File): Promise<{ allTexts: strin
   for (const slideFile of slideFiles) {
     const content = await zip.file(slideFile)?.async('string');
     if (content) {
-      const textElements = content.match(/<a:t>.*?<\/a:t>/gs) || []; // Added 's' flag
-      for (const element of textElements) {
-        const text = element.replace(/<a:t>(.*?)<\/a:t>/s, '$1').trim(); // Added 's' flag
-        if (text) {
-          allTexts.push(text);
-          if (isTranslatable(text)) {
-            translatableTexts.push(text);
+      const paragraphs = content.match(/<a:p>.*?<\/a:p>/gs) || [];
+      for (const p of paragraphs) {
+        const textElements = p.match(/<a:t>.*?<\/a:t>/gs) || [];
+        const fullText = textElements.map(t => t.replace(/<a:t>(.*?)<\/a:t>/s, '$1')).join('');
+        if (fullText.trim()) {
+          allTexts.push(fullText);
+          if (isTranslatable(fullText)) {
+            translatableTexts.push(fullText);
           }
         }
       }
@@ -73,37 +74,38 @@ export const replaceTextInPptx = async (
   for (const slideFile of slideFiles) {
     let content = await zip.file(slideFile)?.async('string');
     if (content) {
-      translationMap.forEach((translated, original) => {
-        const escapedOriginal = xmlEscape(original);
-        const escapedTranslated = xmlEscape(translated);
-        // This regex finds the text run (<a:r>) containing the original text.
-        // It captures the paragraph properties (<a:pPr>) and the run properties (<a:rPr>).
-        // The 's' flag (dotAll) is crucial for matching text that spans multiple lines.
-        const searchRegex = new RegExp(
-          `(<a:pPr[^>]*>.*?</a:pPr>\\s*<a:r>\\s*<a:rPr[^>]*>.*?</a:rPr>\\s*<a:t>${escapedOriginal}</a:t>\\s*</a:r>)`,
-          'gs' // Use 'g' for global and 's' for dotAll to match across newlines
-        );
-        content = content!.replace(searchRegex, (match) => {
-          // Add RTL alignment to paragraph properties
-          let newParagraphProps = match.replace(/<a:pPr[^>]*>/, (pPr) => {
-            if (pPr.includes('algn="r"')) return pPr;
-            return pPr.slice(0, -1) + ' algn="r">';
-          });
-          // Add Persian font to run properties
-          newParagraphProps = newParagraphProps.replace(/<a:rPr[^>]*>/, (rPr) => {
-            // Remove existing Latin font if present
-            let cleanedRpr = rPr.replace(/<a:latin[^>]*>/g, '');
-            // Add Complex Script font for Persian
-            return cleanedRpr.slice(0, -1) + '><a:cs typeface="Arial"/><a:ea typeface="Tahoma"/>';
-          });
-          // Finally, replace the text content
-          return newParagraphProps.replace(
-            `<a:t>${escapedOriginal}</a:t>`,
-            `<a:t>${escapedTranslated}</a:t>`
-          );
-        });
-      });
-      zip.file(slideFile, content);
+      const paragraphs = content.match(/<a:p>.*?<\/a:p>/gs) || [];
+      let newContent = content;
+      for (const p of paragraphs) {
+        const textElements = p.match(/<a:t>.*?<\/a:t>/gs) || [];
+        const fullText = textElements.map(t => t.replace(/<a:t>(.*?)<\/a:t>/s, '$1')).join('');
+        if (translationMap.has(fullText)) {
+          const translatedText = translationMap.get(fullText)!;
+          const escapedTranslated = xmlEscape(translatedText);
+          // Find the first text run to replace
+          const firstRunMatch = p.match(/<a:r>.*?<a:t>.*?<\/a:t>.*?<\/a:r>/s);
+          if (firstRunMatch) {
+            const firstRun = firstRunMatch[0];
+            // Replace the text in the first run with the full translated text
+            const newFirstRun = firstRun.replace(/<a:t>.*?<\/a:t>/s, `<a:t>${escapedTranslated}</a:t>`);
+            // Remove all other runs from the paragraph to avoid duplicated text
+            const newParagraphContent = p
+              .replace(/<a:r>.*?<\/a:r>/gs, '') // Remove all runs
+              .replace(/(<a:pPr.*?>)/s, `$1${newFirstRun}`); // Insert the new single run
+            // Add RTL alignment and Persian font
+            let finalParagraph = newParagraphContent.replace(/<a:pPr[^>]*>/, (pPr) => {
+              if (pPr.includes('algn="r"')) return pPr;
+              return pPr.slice(0, -1) + ' algn="r">';
+            });
+            finalParagraph = finalParagraph.replace(/<a:rPr[^>]*>/, (rPr) => {
+              let cleanedRpr = rPr.replace(/<a:latin[^>]*>/g, '');
+              return cleanedRpr.slice(0, -1) + '><a:cs typeface="Arial"/><a:ea typeface="Tahoma"/>';
+            });
+            newContent = newContent.replace(p, finalParagraph);
+          }
+        }
+      }
+      zip.file(slideFile, newContent);
     }
   }
   return zip.generateAsync({ type: 'blob' });
