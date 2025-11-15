@@ -86,7 +86,7 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
       set({
         isApiKeyValid: true,
         availableModels: data.data.models,
-        selectedModel: data.data.models[0]?.id || '',
+        selectedModel: '',
       });
       toast.success('API Key validated successfully!');
       return true;
