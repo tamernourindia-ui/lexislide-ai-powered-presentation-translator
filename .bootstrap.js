@@ -81,7 +81,8 @@ function runSetupCommands() {
     "bun add react-dropzone@^14.2.3",
     "bun add jspdf@^2.5.1",
     "bun install jspdf@^2.5.1",
-    "bun add jszip"
+    "bun add jszip",
+    "bun add @google/generative-ai"
 ];
     
     if (commands.length === 0) {
