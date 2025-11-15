@@ -223,10 +223,12 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             **CRITICAL RULES:**
             1.  **Translate ONLY the provided text.**
             2.  If a specialized term has no direct, commonly-used Persian equivalent, **keep it in English.**
-            3.  Ensure all translated text is grammatically correct, fluent, and uses an appropriate academic tone for the specified field.
-            4.  The context for this translation is a presentation based on the book/article: "${sourceMaterial}". Use this context to inform your terminology choices.
-            5.  Your entire response should be ONLY the translated Persian text. Do not add any explanations, greetings, or apologies.
-            6.  Preserve the paragraph structure. If the input has text blocks separated by double newlines, the output should have the same structure.`;
+            3.  For specialized terms, provide the Persian translation followed by the original English term in parentheses for clarity. Example: "فشار داخل چشمی (Intraocular Pressure)".
+            4.  Use formal, academic, and precise medical Persian terminology. Avoid colloquialisms.
+            5.  Ensure all translated text is grammatically correct, fluent, and uses an appropriate academic tone for the specified field.
+            6.  The context for this translation is a presentation based on the book/article: "${sourceMaterial}". Use this context to inform your terminology choices.
+            7.  Your entire response should be ONLY the translated Persian text. Do not add any explanations, greetings, or apologies.
+            8.  Preserve the paragraph structure. If the input has text blocks separated by double newlines, the output should have the same structure.`;
             const originalBlocks = textContent.split('\n\n');
             const response = await chatHandler.processMessage(
                 textContent,

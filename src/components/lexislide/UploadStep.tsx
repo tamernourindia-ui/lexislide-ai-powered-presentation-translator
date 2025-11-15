@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 const specializedFields = [
-  { value: 'Ophthalmology', label: '👁️ Ophthalmology' },
+  { value: 'Ophthalmology', label: '���️ Ophthalmology' },
   { value: 'Neurology', label: '🧠 Neurology' },
   { value: 'Cardiology', label: '❤️ Cardiology' },
   { value: 'General Academic', label: '📚 General Academic' },
@@ -26,6 +26,11 @@ export function UploadStep() {
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       const uploadedFile = acceptedFiles[0];
+      const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+      if (uploadedFile.size > MAX_SIZE) {
+        toast.error('File is too large. Maximum size is 50MB.');
+        return;
+      }
       if (uploadedFile.name.endsWith('.pptx')) {
         setFile(uploadedFile);
         toast.success(`${uploadedFile.name} selected.`);
@@ -44,8 +49,8 @@ export function UploadStep() {
       toast.error('Please upload a presentation file.');
       return;
     }
-    if (!sourceMaterial.trim()) {
-      toast.error('Please provide the source material name.');
+    if (sourceMaterial.trim().length < 3) {
+      toast.error('Source material must be at least 3 characters long.');
       return;
     }
     startProcessing();

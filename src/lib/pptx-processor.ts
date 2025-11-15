@@ -5,17 +5,17 @@ import JSZip from 'jszip';
  */
 const isTranslatable = (text: string): boolean => {
   const trimmed = text.trim();
-  // Rule 1: Ignore very short text, likely labels or single words.
-  if (trimmed.length < 15) return false;
+  // Rule 1: Relaxed length check to include shorter, valid sentences.
+  if (trimmed.length < 8) return false;
   // Rule 2: Ignore text that looks like a title (e.g., all caps, few words).
   const wordCount = trimmed.split(/\s+/).length;
   if (wordCount <= 5 && trimmed === trimmed.toUpperCase()) return false;
   // Rule 3: Ignore text starting with numbers or list markers.
-  if (/^(\d+\.?\s*|\(?[a-zA-Z0-9]\)|[•–—-])/.test(trimmed)) return false;
+  if (/^(\d+\.?\s*|\(?[a-zA-Z0-9]\)|[•–���-])/.test(trimmed)) return false;
   // Rule 4: Prioritize text that looks like a sentence (starts with capital, ends with punctuation).
   if (/^[A-Z].*[.!?]$/s.test(trimmed)) return true; // Added 's' flag for multiline
-  // Rule 5: A good fallback for descriptive content is a reasonable word count.
-  return wordCount > 5;
+  // Rule 5: Relaxed fallback for descriptive content word count.
+  return wordCount > 3;
 };
 /**
  * Escapes XML special characters to prevent file corruption.
@@ -108,8 +108,8 @@ export const replaceTextInPptx = async (
             for (const run of finalRuns) {
                 const newRun = run.replace(/<a:rPr[^>]*>/, (rPr) => {
                     let cleanedRpr = rPr.replace(/<a:latin[^>]*>/g, '');
-                    // Add Complex Script and East Asian fonts for broad compatibility
-                    return cleanedRpr.slice(0, -1) + '><a:cs typeface="Arial"/><a:ea typeface="Tahoma"/>';
+                    // Add Complex Script and East Asian fonts for broad compatibility, specifying a common Persian font.
+                    return cleanedRpr.slice(0, -1) + '><a:cs typeface="B Nazanin"/><a:ea typeface="Tahoma"/>';
                 });
                 paragraphWithFonts = paragraphWithFonts.replace(run, newRun);
             }
