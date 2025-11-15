@@ -56,7 +56,7 @@ export const extractTextFromPptx = async (file: File): Promise<{ allTexts: strin
 };
 /**
  * Replaces original text with translated text, applies Persian formatting,
- * and returns a new .pptx file blob.
+ * and returns a new .pptx file blob. This version preserves intra-paragraph formatting.
  */
 export const replaceTextInPptx = async (
   originalFile: File,
@@ -82,26 +82,38 @@ export const replaceTextInPptx = async (
         if (translationMap.has(fullText)) {
           const translatedText = translationMap.get(fullText)!;
           const escapedTranslated = xmlEscape(translatedText);
-          // Find the first text run to replace
-          const firstRunMatch = p.match(/<a:r>.*?<a:t>.*?<\/a:t>.*?<\/a:r>/s);
-          if (firstRunMatch) {
-            const firstRun = firstRunMatch[0];
-            // Replace the text in the first run with the full translated text
+          const runs = p.match(/<a:r>.*?<\/a:r>/gs) || [];
+          if (runs.length > 0) {
+            let modifiedParagraph = p;
+            // 1. Place the full translated text in the first run.
+            const firstRun = runs[0];
             const newFirstRun = firstRun.replace(/<a:t>.*?<\/a:t>/s, `<a:t>${escapedTranslated}</a:t>`);
-            // Remove all other runs from the paragraph to avoid duplicated text
-            const newParagraphContent = p
-              .replace(/<a:r>.*?<\/a:r>/gs, '') // Remove all runs
-              .replace(/(<a:pPr.*?>)/s, `$1${newFirstRun}`); // Insert the new single run
-            // Add RTL alignment and Persian font
-            let finalParagraph = newParagraphContent.replace(/<a:pPr[^>]*>/, (pPr) => {
+            modifiedParagraph = modifiedParagraph.replace(firstRun, newFirstRun);
+            // 2. Clear the text from all subsequent runs to avoid duplication.
+            for (let i = 1; i < runs.length; i++) {
+              const subsequentRun = runs[i];
+              const newSubsequentRun = subsequentRun.replace(/<a:t>.*?<\/a:t>/s, '<a:t></a:t>');
+              modifiedParagraph = modifiedParagraph.replace(subsequentRun, newSubsequentRun);
+            }
+            // 3. Apply RTL alignment to the paragraph properties.
+            modifiedParagraph = modifiedParagraph.replace(/<a:pPr[^>]*>/, (pPr) => {
               if (pPr.includes('algn="r"')) return pPr;
+              // Avoid adding attribute if no pPr tag exists
+              if (pPr.startsWith('<a:p>')) return `<a:p><a:pPr algn="r"/>`;
               return pPr.slice(0, -1) + ' algn="r">';
             });
-            finalParagraph = finalParagraph.replace(/<a:rPr[^>]*>/, (rPr) => {
-              let cleanedRpr = rPr.replace(/<a:latin[^>]*>/g, '');
-              return cleanedRpr.slice(0, -1) + '><a:cs typeface="Arial"/><a:ea typeface="Tahoma"/>';
-            });
-            newContent = newContent.replace(p, finalParagraph);
+            // 4. Apply Persian font properties to each run's properties.
+            const finalRuns = modifiedParagraph.match(/<a:r>.*?<\/a:r>/gs) || [];
+            let paragraphWithFonts = modifiedParagraph;
+            for (const run of finalRuns) {
+                const newRun = run.replace(/<a:rPr[^>]*>/, (rPr) => {
+                    let cleanedRpr = rPr.replace(/<a:latin[^>]*>/g, '');
+                    // Add Complex Script and East Asian fonts for broad compatibility
+                    return cleanedRpr.slice(0, -1) + '><a:cs typeface="Arial"/><a:ea typeface="Tahoma"/>';
+                });
+                paragraphWithFonts = paragraphWithFonts.replace(run, newRun);
+            }
+            newContent = newContent.replace(p, paragraphWithFonts);
           }
         }
       }
