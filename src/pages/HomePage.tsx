@@ -24,6 +24,7 @@ export function HomePage() {
       case 'results':
         return <ResultsStep />;
       default:
+        // Fallback to the setup step if the state is unknown
         return <ApiKeySetupStep />;
     }
   };
@@ -60,7 +61,7 @@ export function HomePage() {
             <p>
               AI has a limit on the number of requests that can be made in a given time period.
             </p>
-            <p>Built with ❤️ at Cloudflare</p>
+            <p>Built with ❤��� at Cloudflare</p>
           </div>
         </footer>
       </div>
