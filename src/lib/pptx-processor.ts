@@ -11,9 +11,9 @@ const isTranslatable = (text: string): boolean => {
   const wordCount = trimmed.split(/\s+/).length;
   if (wordCount <= 5 && trimmed === trimmed.toUpperCase()) return false;
   // Rule 3: Ignore text starting with numbers or list markers.
-  if (/^(\d+\.?\s*|\(?[a-zA-Z0-9]\)|•|-)/.test(trimmed)) return false;
+  if (/^(\d+\.?\s*|\(?[a-zA-Z0-9]\)|���|-)/.test(trimmed)) return false;
   // Rule 4: Prioritize text that looks like a sentence (starts with capital, ends with punctuation).
-  if (/^[A-Z].*[.!?]$/.test(trimmed)) return true;
+  if (/^[A-Z].*[.!?]$/s.test(trimmed)) return true; // Added 's' flag for multiline
   // Rule 5: A good fallback for descriptive content is a reasonable word count.
   return wordCount > 5;
 };
@@ -39,9 +39,9 @@ export const extractTextFromPptx = async (file: File): Promise<{ allTexts: strin
   for (const slideFile of slideFiles) {
     const content = await zip.file(slideFile)?.async('string');
     if (content) {
-      const textElements = content.match(/<a:t>.*?<\/a:t>/g) || [];
+      const textElements = content.match(/<a:t>.*?<\/a:t>/gs) || []; // Added 's' flag
       for (const element of textElements) {
-        const text = element.replace(/<a:t>(.*?)<\/a:t>/, '$1').trim();
+        const text = element.replace(/<a:t>(.*?)<\/a:t>/s, '$1').trim(); // Added 's' flag
         if (text) {
           allTexts.push(text);
           if (isTranslatable(text)) {
@@ -78,9 +78,10 @@ export const replaceTextInPptx = async (
         const escapedTranslated = xmlEscape(translated);
         // This regex finds the text run (<a:r>) containing the original text.
         // It captures the paragraph properties (<a:pPr>) and the run properties (<a:rPr>).
+        // The 's' flag (dotAll) is crucial for matching text that spans multiple lines.
         const searchRegex = new RegExp(
           `(<a:pPr[^>]*>.*?</a:pPr>\\s*<a:r>\\s*<a:rPr[^>]*>.*?</a:rPr>\\s*<a:t>${escapedOriginal}</a:t>\\s*</a:r>)`,
-          'g'
+          'gs' // Use 'g' for global and 's' for dotAll to match across newlines
         );
         content = content!.replace(searchRegex, (match) => {
           // Add RTL alignment to paragraph properties
