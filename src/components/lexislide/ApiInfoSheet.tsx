@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Code, Cloud, Cpu, BrainCircuit, Server, Zap, Network } from 'lucide-react';
+import { Code, Cpu, BrainCircuit, Server, Network } from 'lucide-react';
 import { ArchitectureDiagram } from './ArchitectureDiagram';
 interface ApiInfoSheetProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ export function ApiInfoSheet({ isOpen, setIsOpen }: ApiInfoSheetProps) {
             Technology & API Info
           </SheetTitle>
           <SheetDescription>
-            An overview of the technologies powering LexiSlide and mock API usage.
+            An overview of the technologies powering LexiSlide.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto px-6 space-y-6">
@@ -52,15 +52,9 @@ export function ApiInfoSheet({ isOpen, setIsOpen }: ApiInfoSheetProps) {
             <TechBadge>Zustand</TechBadge>
           </Section>
           <Separator />
-          <Section icon={<Cloud className="h-5 w-5" />} title="Backend & Infrastructure">
-            <TechBadge>Cloudflare Workers</TechBadge>
-            <TechBadge>Hono</TechBadge>
-            <TechBadge>Durable Objects</TechBadge>
-          </Section>
-          <Separator />
           <Section icon={<BrainCircuit className="h-5 w-5" />} title="Artificial Intelligence">
-            <TechBadge>Cloudflare AI Gateway</TechBadge>
-            <TechBadge>Google Gemini 2.5 Pro</TechBadge>
+            <TechBadge>Google AI SDK</TechBadge>
+            <TechBadge>Google Gemini Pro</TechBadge>
           </Section>
           <Separator />
           <Section icon={<Network className="h-5 w-5" />} title="Application Architecture">
@@ -72,24 +66,24 @@ export function ApiInfoSheet({ isOpen, setIsOpen }: ApiInfoSheetProps) {
               <Server className="h-5 w-5" />
               API Endpoint & Usage
             </h3>
-            <div className="font-mono text-sm bg-secondary p-3 rounded-md">
-              <span className="font-bold text-teal-500">POST</span> /api/translate
+            <div className="font-mono text-sm bg-secondary p-3 rounded-md break-all">
+              <span className="font-bold text-teal-500">POST</span> generativelanguage.googleapis.com
             </div>
             <div className="grid grid-cols-2 gap-4 text-center">
               <div className="bg-secondary p-3 rounded-md">
-                <p className="text-2xl font-bold">2,415</p>
-                <p className="text-xs text-muted-foreground">API Calls Today</p>
+                <p className="text-2xl font-bold">N/A</p>
+                <p className="text-xs text-muted-foreground">API Calls (Client-Side)</p>
               </div>
               <div className="bg-secondary p-3 rounded-md">
-                <p className="text-2xl font-bold">99.8%</p>
-                <p className="text-xs text-muted-foreground">Success Rate</p>
+                <p className="text-2xl font-bold">N/A</p>
+                <p className="text-xs text-muted-foreground">Success Rate (Client-Side)</p>
               </div>
             </div>
           </div>
         </div>
         <SheetFooter className="p-6 mt-auto bg-secondary/30">
           <p className="text-xs text-muted-foreground text-center w-full">
-            API usage statistics are for demonstration purposes only.
+            All AI API calls are made directly from the client.
           </p>
         </SheetFooter>
       </SheetContent>

@@ -1,7 +1,6 @@
 import { useTheme } from '@/hooks/use-theme';
 export function ArchitectureDiagram() {
   const { isDark } = useTheme();
-  const strokeColor = isDark ? '#4A5568' : '#CBD5E0';
   const textColor = isDark ? '#E2E8F0' : '#4A5568';
   const boxBg = isDark ? '#2D3748' : '#F7FAFC';
   const boxBorder = isDark ? '#4A5568' : '#E2E8F0';
@@ -60,19 +59,17 @@ export function ArchitectureDiagram() {
   );
   return (
     <div className="p-4 bg-secondary/50 rounded-lg">
-      <svg viewBox="0 0 500 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 400 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <Arrow id="arrow" />
         </defs>
         {/* Boxes */}
-        <Box x={10} y={75} width={100} height={50} text={["User", "(React Frontend)"]} />
-        <Box x={140} y={75} width={100} height={50} text={["Cloudflare", "Worker"]} />
-        <Box x={270} y={75} width={100} height={50} text={["Cloudflare", "AI Gateway"]} />
-        <Box x={400} y={75} width={90} height={50} text={["Gemini", "AI Model"]} />
+        <Box x={10} y={75} width={120} height={50} text={["User", "(React Frontend)"]} />
+        <Box x={160} y={75} width={100} height={50} text={["Google AI", "API"]} />
+        <Box x={290} y={75} width={100} height={50} text={["Gemini", "AI Model"]} />
         {/* Lines */}
-        <Line x1={110} y1={100} x2={140} y2={100} markerId="arrow" />
-        <Line x1={240} y1={100} x2={270} y2={100} markerId="arrow" />
-        <Line x1={370} y1={100} x2={400} y2={100} markerId="arrow" />
+        <Line x1={130} y1={100} x2={160} y2={100} markerId="arrow" />
+        <Line x1={260} y1={100} x2={290} y2={100} markerId="arrow" />
       </svg>
     </div>
   );
