@@ -1,7 +1,5 @@
 import { defineConfig, loadEnv } from "vite";
-import path from "path";
 import react from "@vitejs/plugin-react";
-import { exec } from "node:child_process";
 import pino from "pino";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
@@ -48,48 +46,11 @@ const customLogger = {
   hasWarned: false,
 };
 
-function watchDependenciesPlugin() {
-  return {
-    // Plugin to clear caches when dependencies change
-    name: "watch-dependencies",
-    configureServer(server: any) {
-      const filesToWatch = [
-        path.resolve("package.json"),
-        path.resolve("bun.lock"),
-      ];
-
-      server.watcher.add(filesToWatch);
-
-      server.watcher.on("change", (filePath: string) => {
-        if (filesToWatch.includes(filePath)) {
-          console.log(
-            `\n📦 Dependency file changed: ${path.basename(
-              filePath
-            )}. Clearing caches...`
-          );
-
-          // Run the cache-clearing command
-          exec(
-            "rm -f .eslintcache tsconfig.tsbuildinfo",
-            (err, stdout, stderr) => {
-              if (err) {
-                console.error("Failed to clear caches:", stderr);
-                return;
-              }
-              console.log("✅ Caches cleared successfully.\n");
-            }
-          );
-        }
-      });
-    },
-  };
-}
-
 // https://vite.dev/config/
 export default ({ mode }: { mode: string }) => {
-  const env = loadEnv(mode, process.cwd());
+  const env = loadEnv(mode, ".");
   return defineConfig({
-    plugins: [react(), cloudflare(), watchDependenciesPlugin()],
+    plugins: [react(), cloudflare()],
     build: {
       minify: true,
       sourcemap: "inline", // Use inline source maps for better error reporting
@@ -106,11 +67,16 @@ export default ({ mode }: { mode: string }) => {
     },
     server: {
       allowedHosts: true,
+      hmr: {
+        protocol: "wss",
+        host: process.env.HMR_HOST,
+        clientPort: 443,
+      },
     },
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
-        "@shared": path.resolve(__dirname, "./shared"),
+        "@": "/src",
+        "@shared": "/shared",
       },
     },
     optimizeDeps: {
