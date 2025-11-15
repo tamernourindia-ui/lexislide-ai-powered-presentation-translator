@@ -247,12 +247,21 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             );
             let parsedResponse;
             try {
-                parsedResponse = JSON.parse(response.content);
+                // Use a regex to extract the JSON object from the raw response string,
+                // which might be wrapped in markdown fences or other text.
+                const jsonMatch = response.content.match(/{[\s\S]*}/);
+                if (!jsonMatch) {
+                    throw new Error("No JSON object found in the AI response.");
+                }
+                const jsonString = jsonMatch[0];
+                parsedResponse = JSON.parse(jsonString);
                 if (!parsedResponse.translatedContent || !Array.isArray(parsedResponse.terminology)) {
                     throw new Error("Invalid JSON structure from AI.");
                 }
             } catch (error) {
                 console.error("Failed to parse AI JSON response:", error);
+                // Log the original content to help debug issues with AI's output format
+                console.error("Original AI response content:", response.content);
                 throw new Error("The AI returned an invalid response format. Please try again.");
             }
             const translatedBlocks = parsedResponse.translatedContent.split('\n\n');
