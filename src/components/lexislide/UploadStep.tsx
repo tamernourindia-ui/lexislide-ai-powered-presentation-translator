@@ -7,30 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-const specializedFields = [
-  { value: 'Ophthalmology', label: '���️ Ophthalmology' },
-  { value: 'Neurology', label: '🧠 Neurology' },
-  { value: 'Cardiology', label: '❤️ Cardiology' },
-  { value: 'General Academic', label: '📚 General Academic' },
-];
 export function UploadStep() {
   const file = useLexiSlideStore(s => s.file);
   const setFile = useLexiSlideStore(s => s.setFile);
   const sourceMaterial = useLexiSlideStore(s => s.sourceMaterial);
   const setSourceMaterial = useLexiSlideStore(s => s.setSourceMaterial);
-  const specializedField = useLexiSlideStore(s => s.specializedField);
-  const setSpecializedField = useLexiSlideStore(s => s.setSpecializedField);
   const startProcessing = useLexiSlideStore(s => s.startProcessing);
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       const uploadedFile = acceptedFiles[0];
-      const MAX_SIZE = 50 * 1024 * 1024; // 50MB
-      if (uploadedFile.size > MAX_SIZE) {
-        toast.error('File is too large. Maximum size is 50MB.');
-        return;
-      }
       if (uploadedFile.name.endsWith('.pptx')) {
         setFile(uploadedFile);
         toast.success(`${uploadedFile.name} selected.`);
@@ -49,8 +35,8 @@ export function UploadStep() {
       toast.error('Please upload a presentation file.');
       return;
     }
-    if (sourceMaterial.trim().length < 3) {
-      toast.error('Source material must be at least 3 characters long.');
+    if (!sourceMaterial.trim()) {
+      toast.error('Please provide the source material name.');
       return;
     }
     startProcessing();
@@ -63,32 +49,15 @@ export function UploadStep() {
           <CardDescription className="text-lg">Provide your presentation and its source context.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8 p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="source-material" className="text-base font-semibold">Source Material</Label>
-              <Input
-                id="source-material"
-                placeholder="e.g., 'Kanski's Ophthalmology'"
-                value={sourceMaterial}
-                onChange={(e) => setSourceMaterial(e.target.value)}
-                className="text-base py-6"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="specialized-field" className="text-base font-semibold">Specialized Field</Label>
-              <Select value={specializedField} onValueChange={setSpecializedField}>
-                <SelectTrigger id="specialized-field" className="text-base h-[52px]">
-                  <SelectValue placeholder="Select a field" />
-                </SelectTrigger>
-                <SelectContent>
-                  {specializedFields.map(field => (
-                    <SelectItem key={field.value} value={field.value} className="text-base">
-                      {field.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="source-material" className="text-base font-semibold">Source Material</Label>
+            <Input
+              id="source-material"
+              placeholder="e.g., 'Kanski's Clinical Ophthalmology'"
+              value={sourceMaterial}
+              onChange={(e) => setSourceMaterial(e.target.value)}
+              className="text-base py-6"
+            />
           </div>
           <div className="space-y-2">
             <Label className="text-base font-semibold">Presentation File</Label>

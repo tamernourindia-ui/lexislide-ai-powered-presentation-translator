@@ -13,6 +13,7 @@ export default {
   				'Roboto',
   				'sans-serif'
   			],
+        sora: ['Sora', 'sans-serif'],
   			display: [
   				'Cal Sans',
   				'Inter',
