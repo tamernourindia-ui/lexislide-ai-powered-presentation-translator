@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { toast } from 'sonner';
 import { extractTextFromPptx, replaceTextInPptx } from '@/lib/pptx-processor';
 type Step = 'apiKeySetup' | 'upload' | 'processing' | 'results';
+interface Terminology {
+  english: string;
+  persian: string;
+}
 interface ProcessingStats {
   slides: number;
   textBlocks: number;
@@ -11,6 +15,7 @@ interface ProcessingStats {
   translatedContent?: string;
   fileName?: string;
   translatedFileUrl?: string;
+  terminology: Terminology[];
 }
 interface AiModel {
   id: string;
@@ -153,16 +158,18 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
       await delay(500);
       set({ processingStep: 5, processingStatus: processingSteps[5].text });
       await delay(500);
+      const terminology = data.data.statistics.terminology || [];
       set({
         step: 'results',
         results: {
           ...data.data.statistics,
           slides: data.data.statistics.slides || 15,
           textBlocks: translatableTexts.length,
-          terms: data.data.statistics.terms || Math.floor(translatableTexts.length * 1.5),
+          terms: terminology.length,
           translatedContent: data.data.translatedContent,
           fileName: fileName,
           translatedFileUrl: translatedFileUrl,
+          terminology: terminology,
         },
       });
       toast.success('Translation completed successfully!');
@@ -173,7 +180,7 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
     }
   },
   reset: () => {
-    const { isApiKeyValid, apiKey, availableModels, selectedModel, results: currentResults } = get();
+    const { isApiKeyValid, results: currentResults } = get();
     if (currentResults?.translatedFileUrl) {
       URL.revokeObjectURL(currentResults.translatedFileUrl);
     }

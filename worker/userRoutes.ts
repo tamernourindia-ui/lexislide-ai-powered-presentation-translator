@@ -221,14 +221,22 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             );
             const systemPrompt = `You are an expert translator specializing in academic texts, specifically in the field of ${field}. Your task is to translate English presentation content into professional, academic Persian.
             **CRITICAL RULES:**
-            1.  **Translate ONLY the provided text.**
-            2.  If a specialized term has no direct, commonly-used Persian equivalent, **keep it in English.**
-            3.  For specialized terms, provide the Persian translation followed by the original English term in parentheses for clarity. Example: "فشار داخل چشمی (Intraocular Pressure)".
-            4.  Use formal, academic, and precise medical Persian terminology. Avoid colloquialisms.
-            5.  Ensure all translated text is grammatically correct, fluent, and uses an appropriate academic tone for the specified field.
-            6.  The context for this translation is a presentation based on the book/article: "${sourceMaterial}". Use this context to inform your terminology choices.
-            7.  Your entire response should be ONLY the translated Persian text. Do not add any explanations, greetings, or apologies.
-            8.  Preserve the paragraph structure. If the input has text blocks separated by double newlines, the output should have the same structure.`;
+            1.  You MUST return a single, valid JSON object and nothing else.
+            2.  The JSON object must have two keys: "translatedContent" (string) and "terminology" (an array of objects).
+            3.  The "translatedContent" string must contain the full Persian translation.
+            4.  The "terminology" array must contain objects, each with two keys: "english" (the original English term) and "persian" (its Persian translation).
+            5.  Identify and extract all specialized terms from the text for the terminology list.
+            6.  For specialized terms in the main translation, provide the Persian translation followed by the original English term in parentheses. Example: "فشار داخل چشمی (Intraocular Pressure)".
+            7.  Use formal, academic, and precise medical Persian terminology.
+            8.  The context for this translation is a presentation based on: "${sourceMaterial}".
+            9.  Preserve the paragraph structure. If the input has text blocks separated by double newlines, the "translatedContent" string should have the same structure.
+            Example JSON output format:
+            {
+              "translatedContent": "این یک پاراگراف نمونه است که در آن فشار داخل چشمی (Intraocular Pressure) مورد بحث قرار گرفته است.\\n\\nاین یک پاراگراف دیگر است.",
+              "terminology": [
+                { "english": "Intraocular Pressure", "persian": "فشار داخل چشمی" }
+              ]
+            }`;
             const originalBlocks = textContent.split('\n\n');
             const response = await chatHandler.processMessage(
                 textContent,
@@ -237,7 +245,17 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
                 undefined, // No streaming
                 systemPrompt // Custom system prompt
             );
-            const translatedBlocks = response.content.split('\n\n');
+            let parsedResponse;
+            try {
+                parsedResponse = JSON.parse(response.content);
+                if (!parsedResponse.translatedContent || !Array.isArray(parsedResponse.terminology)) {
+                    throw new Error("Invalid JSON structure from AI.");
+                }
+            } catch (error) {
+                console.error("Failed to parse AI JSON response:", error);
+                throw new Error("The AI returned an invalid response format. Please try again.");
+            }
+            const translatedBlocks = parsedResponse.translatedContent.split('\n\n');
             // **INTEGRITY CHECK**
             if (originalBlocks.length !== translatedBlocks.length) {
                 throw new Error(`Translation integrity check failed. The AI returned a different number of text blocks (${translatedBlocks.length}) than expected (${originalBlocks.length}). Please try again.`);
@@ -245,11 +263,12 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             const stats = {
                 source: sourceMaterial,
                 field: field,
+                terminology: parsedResponse.terminology,
             };
             return c.json({
                 success: true,
                 data: {
-                    translatedContent: response.content,
+                    translatedContent: parsedResponse.translatedContent,
                     statistics: stats,
                 }
             });

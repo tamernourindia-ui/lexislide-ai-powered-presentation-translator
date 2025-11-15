@@ -32,31 +32,50 @@ export function ResultsStep() {
   };
   const handlePdfDownload = () => {
     const doc = new jsPDF();
-    // 1. Register the custom Persian font
     doc.addFileToVFS('Vazirmatn-Regular.ttf', VAZIRMATN_FONT_BASE64);
     doc.addFont('Vazirmatn-Regular.ttf', 'Vazirmatn', 'normal');
-    // 2. Set the font for the document
     doc.setFont('Vazirmatn');
     doc.text('LexiSlide Terminology Report', 105, 20, { align: 'center' });
     doc.setFontSize(12);
-    // Use RTL options for Persian text
     doc.text(`منبع: ${results.source}`, 190, 40, { align: 'right' });
-    doc.text(`حوزه تخ��صی: ${results.field}`, 190, 50, { align: 'right' });
-    // English text can remain LTR
+    doc.text(`حوزه تخصصی: ${results.field}`, 190, 50, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     doc.text(`Original File: ${results.fileName || 'N/A'}`, 20, 60);
     doc.setLineWidth(0.5);
     doc.line(20, 65, 190, 65);
-    // Switch back to Persian font for headers and stats
     doc.setFont('Vazirmatn');
     doc.text('آمار ترجمه', 190, 75, { align: 'right' });
     doc.text(`- اسلایدهای پردازش شده: ${results.slides}`, 190, 85, { align: 'right' });
     doc.text(`- بلوک‌های متنی ترجمه شده: ${results.textBlocks}`, 190, 92, { align: 'right' });
     doc.text(`- اصطلاحات تخصصی شناسایی شده: ${results.terms}`, 190, 99, { align: 'right' });
     doc.line(20, 105, 190, 105);
-    doc.text('پیش‌نمایش محتوای ترجمه شده:', 190, 115, { align: 'right' });
-    const splitText = doc.splitTextToSize(results.translatedContent || 'محتوایی برای نمایش وجود ندارد.', 170);
-    doc.text(splitText, 190, 125, { align: 'right' });
+    if (results.terminology && results.terminology.length > 0) {
+      let yPos = 115;
+      doc.text('اصطلاحات تخصصی', 190, yPos, { align: 'right' });
+      yPos += 10;
+      // Table Header
+      doc.setFont('helvetica', 'bold');
+      doc.text('English Term', 20, yPos);
+      doc.setFont('Vazirmatn', 'normal'); // bold is not registered, use normal
+      doc.text('معادل فارسی', 190, yPos, { align: 'right' });
+      yPos += 5;
+      doc.line(20, yPos, 190, yPos);
+      yPos += 8;
+      // Table Rows
+      results.terminology.forEach(term => {
+        if (yPos > 280) { // Page break
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.setFont('helvetica', 'normal');
+        doc.text(term.english, 20, yPos);
+        doc.setFont('Vazirmatn', 'normal');
+        doc.text(term.persian, 190, yPos, { align: 'right' });
+        yPos += 10;
+      });
+    } else {
+      doc.text('هیچ اصطلاح تخصصی شناسایی نشد.', 190, 115, { align: 'right' });
+    }
     const baseName = results.fileName?.replace('.pptx', '') || 'report';
     doc.save(`${baseName}-report.pdf`);
   };
