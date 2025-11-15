@@ -13,7 +13,6 @@ import {
 } from '@google/generative-ai';
 import type { Message, ToolCall } from './types';
 import { getToolDefinitions, executeTool } from './tools';
-
 // A type that mirrors Google's FunctionCall but is easier to work with internally
 type InternalFunctionCall = {
   name: string;
@@ -32,14 +31,15 @@ export async function listModels(baseUrl: string, apiKey: string) {
     // This will throw an error if the API key is invalid on the first API call.
     // Since there's no listModels, we'll try getting a model.
     genAI.getGenerativeModel({ model: 'gemini-pro' });
-
     // Since we cannot dynamically list models, return a predefined list of common models.
     const staticModels = [
-      { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro' },
-      { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash' },
       { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro' },
-    ];
-    return staticModels.sort((a, b) => a.name.localeCompare(b.name));
+      { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash' },
+      { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro' },
+      { id: 'gemini-pro', name: 'Gemini Pro' },
+      { id: 'gemini-pro-vision', name: 'Gemini Pro Vision' },
+    ].sort((a, b) => a.name.localeCompare(b.name));
+    return staticModels;
   } catch (error: any) {
     console.error("Failed to validate API key with Google:", error);
     if (error.message.includes('API key not valid')) {
@@ -57,7 +57,6 @@ export async function listModels(baseUrl: string, apiKey: string) {
 export class ChatHandler {
   private client: GenerativeModel;
   private modelName: string;
-
   constructor(aiGatewayUrl: string, apiKey: string, model: string) {
     // aiGatewayUrl is not used by the Google SDK in this manner
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -97,7 +96,6 @@ export class ChatHandler {
           { ...value, type: value.type.toUpperCase() as SchemaType }
         ])
       ) : {};
-
       return {
         name: t.function.name,
         description: t.function.description,
@@ -108,7 +106,6 @@ export class ChatHandler {
         },
       };
     });
-
     const chat = this.client.startChat({
       history,
       tools: [{ functionDeclarations: tools }],
@@ -117,13 +114,11 @@ export class ChatHandler {
         parts: [{ text: system }],
       },
     });
-
     if (onChunk) {
       // Use streaming with callback
       const result = await chat.sendMessageStream(message);
       return this.handleStreamResponse(result, onChunk, env);
     }
-
     // Non-streaming response
     const result = await chat.sendMessage(message);
     return this.handleNonStreamResponse(result, env);
@@ -135,14 +130,12 @@ export class ChatHandler {
   ) {
     let fullContent = '';
     const accumulatedToolCalls: InternalFunctionCall[] = [];
-
     for await (const chunk of result.stream) {
       const text = chunk.text();
       if (text) {
         fullContent += text;
         onChunk(text);
       }
-
       const functionCalls = chunk.functionCalls();
       if (functionCalls) {
         for (const fc of functionCalls) {
@@ -150,7 +143,6 @@ export class ChatHandler {
         }
       }
     }
-
     if (accumulatedToolCalls.length > 0) {
       const executedTools = await this.executeToolCalls(accumulatedToolCalls, env);
       const finalResponse = await this.generateToolResponse(executedTools);
@@ -158,20 +150,17 @@ export class ChatHandler {
       onChunk(finalResponse);
       return { content: finalResponse, toolCalls: executedTools };
     }
-
     return { content: fullContent };
   }
   private async handleNonStreamResponse(result: GenerateContentResult, env: any) {
     const response = result.response;
     const functionCalls = response.functionCalls();
-
     if (functionCalls && functionCalls.length > 0) {
       const internalCalls: InternalFunctionCall[] = functionCalls.map(fc => ({ name: fc.name, args: fc.args }));
       const executedTools = await this.executeToolCalls(internalCalls, env);
       const finalResponse = await this.generateToolResponse(executedTools);
       return { content: finalResponse, toolCalls: executedTools };
     }
-
     return { content: response.text() };
   }
   /**
@@ -213,11 +202,9 @@ export class ChatHandler {
         },
       },
     }));
-
     const result = await this.client.generateContent({
       contents: [{ role: 'function', parts: toolParts }],
     });
-
     return result.response.text();
   }
   /**
@@ -225,14 +212,11 @@ export class ChatHandler {
    */
   private buildConversationMessages(userMessage: string, history: Message[], customSystemPrompt?: string): { system: string, history: Content[] } {
     const defaultSystemPrompt = 'You are a helpful AI assistant that helps users build and deploy web applications. You provide clear, concise guidance on development, deployment, and troubleshooting. Keep responses practical and actionable.';
-    
     const system = customSystemPrompt || defaultSystemPrompt;
-
     const googleHistory: Content[] = history.slice(-5).map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     }));
-
     // The latest user message is handled by `sendMessage`, not included in history.
     return { system, history: googleHistory };
   }
