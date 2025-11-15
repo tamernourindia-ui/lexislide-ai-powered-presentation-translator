@@ -3,7 +3,7 @@ import { getAgentByName } from 'agents';
 import { ChatAgent } from './agent';
 import { API_RESPONSES } from './config';
 import { Env, getAppController, registerSession, unregisterSession } from "./core-utils";
-import { ChatHandler } from "./chat";
+import { ChatHandler, listModels } from "./chat";
 /**
  * DO NOT MODIFY THIS FUNCTION. Only for your reference.
  */
@@ -186,10 +186,27 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             }, { status: 500 });
         }
     });
-    // 🤖 AI Extension Point: Add more custom routes here
+    // New endpoint to validate API key
+    app.post('/api/validate-key', async (c) => {
+        try {
+            const { apiKey } = await c.req.json();
+            if (!apiKey) {
+                return c.json({ success: false, error: 'API key is required' }, { status: 400 });
+            }
+            const models = await listModels(c.env.CF_AI_BASE_URL, apiKey);
+            return c.json({ success: true, data: { models } });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+            return c.json({ success: false, error: errorMessage }, { status: 401 });
+        }
+    });
+    // Updated translation endpoint
     app.post('/api/translate', async (c) => {
         try {
-            const { sourceMaterial, textContent, specializedField } = await c.req.json();
+            const { sourceMaterial, textContent, specializedField, apiKey, model } = await c.req.json();
+            if (!apiKey || !model) {
+                return c.json({ success: false, error: 'API key and model are required' }, { status: 400 });
+            }
             if (!sourceMaterial) {
                 return c.json({ success: false, error: 'Source material is required' }, { status: 400 });
             }
@@ -199,8 +216,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             const field = specializedField || 'General Academic';
             const chatHandler = new ChatHandler(
                 c.env.CF_AI_BASE_URL,
-                c.env.CF_AI_API_KEY,
-                'google-ai-studio/gemini-2.5-pro'
+                apiKey, // Use user-provided key
+                model   // Use user-selected model
             );
             const systemPrompt = `You are an expert translator specializing in academic texts, specifically in the field of ${field}. Your task is to translate English presentation content into professional, academic Persian.
             **CRITICAL RULES:**
@@ -229,7 +246,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             });
         } catch (error) {
             console.error('Translation endpoint error:', error);
-            return c.json({ success: false, error: 'Failed to process translation' }, { status: 500 });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to process translation';
+            return c.json({ success: false, error: errorMessage }, { status: 500 });
         }
     });
 }

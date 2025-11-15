@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { KeyRound, Check, AlertTriangle, Loader2, Wand2, ExternalLink } from 'lucide-react';
+import { KeyRound, Check, AlertTriangle, Loader2, Wand2 } from 'lucide-react';
 import { useLexiSlideStore } from '@/hooks/useLexiSlideStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,16 +8,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export function ApiKeySetupStep() {
-  const apiKey = useLexiSlideStore((s) => s.apiKey);
-  const setApiKey = useLexiSlideStore((s) => s.setApiKey);
-  const isApiKeyValid = useLexiSlideStore((s) => s.isApiKeyValid);
-  const isApiKeyLoading = useLexiSlideStore((s) => s.isApiKeyLoading);
-  const apiKeyError = useLexiSlideStore((s) => s.apiKeyError);
-  const availableModels = useLexiSlideStore((s) => s.availableModels);
-  const selectedModel = useLexiSlideStore((s) => s.selectedModel);
-  const setSelectedModel = useLexiSlideStore((s) => s.setSelectedModel);
-  const validateApiKey = useLexiSlideStore((s) => s.validateApiKey);
-  const confirmApiKeySetup = useLexiSlideStore((s) => s.confirmApiKeySetup);
+  const apiKey = useLexiSlideStore(s => s.apiKey);
+  const setApiKey = useLexiSlideStore(s => s.setApiKey);
+  const isApiKeyValid = useLexiSlideStore(s => s.isApiKeyValid);
+  const isApiKeyLoading = useLexiSlideStore(s => s.isApiKeyLoading);
+  const apiKeyError = useLexiSlideStore(s => s.apiKeyError);
+  const availableModels = useLexiSlideStore(s => s.availableModels);
+  const selectedModel = useLexiSlideStore(s => s.selectedModel);
+  const setSelectedModel = useLexiSlideStore(s => s.setSelectedModel);
+  const validateApiKey = useLexiSlideStore(s => s.validateApiKey);
+  const confirmApiKeySetup = useLexiSlideStore(s => s.confirmApiKeySetup);
   const handleValidate = () => {
     if (apiKey.trim()) {
       validateApiKey();
@@ -57,17 +57,6 @@ export function ApiKeySetupStep() {
                 )}
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground pt-1">
-              You can get your API key from{' '}
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-primary transition-colors"
-              >
-                Google AI Studio <ExternalLink className="inline-block h-3 w-3" />
-              </a>.
-            </p>
           </div>
           {apiKeyError && (
             <Alert variant="destructive">

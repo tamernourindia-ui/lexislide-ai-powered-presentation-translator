@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { BrainCircuit, Code } from 'lucide-react';
 import { useLexiSlideStore } from '@/hooks/useLexiSlideStore';
+import { ApiKeySetupStep } from '@/components/lexislide/ApiKeySetupStep';
 import { UploadStep } from '@/components/lexislide/UploadStep';
 import { ProcessingStep } from '@/components/lexislide/ProcessingStep';
 import { ResultsStep } from '@/components/lexislide/ResultsStep';
@@ -14,6 +15,8 @@ export function HomePage() {
   const [isApiInfoOpen, setIsApiInfoOpen] = useState(false);
   const renderStep = () => {
     switch (step) {
+      case 'apiKeySetup':
+        return <ApiKeySetupStep />;
       case 'upload':
         return <UploadStep />;
       case 'processing':
@@ -21,7 +24,7 @@ export function HomePage() {
       case 'results':
         return <ResultsStep />;
       default:
-        return <UploadStep />;
+        return <ApiKeySetupStep />;
     }
   };
   return (

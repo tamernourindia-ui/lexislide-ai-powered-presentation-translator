@@ -3,6 +3,29 @@ import type { Message, ToolCall } from './types';
 import { getToolDefinitions, executeTool } from './tools';
 import { ChatCompletionMessageFunctionToolCall } from 'openai/resources/index.mjs';
 /**
+ * Validates an API key by listing available models.
+ */
+export async function listModels(baseUrl: string, apiKey: string) {
+  try {
+    const client = new OpenAI({ baseURL: baseUrl, apiKey });
+    const models = await client.models.list();
+    // Filter and format to a simpler structure
+    return models.data
+      .filter(model => model.id.includes('gemini')) // Example filter
+      .map(model => ({ id: model.id, name: model.id.split('/').pop()?.replace(/-/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase()) || model.id }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error("Failed to list models:", error);
+    if (error instanceof OpenAI.APIError) {
+      if (error.status === 401) {
+        throw new Error("Authentication failed. Please check your API key.");
+      }
+    }
+    throw new Error("Could not connect to the AI provider. Please check your API key and network.");
+  }
+}
+/**
  * ChatHandler - Handles all chat-related operations
  *
  * This class encapsulates the OpenAI integration and tool execution logic,

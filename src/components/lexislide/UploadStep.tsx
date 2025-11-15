@@ -70,7 +70,7 @@ export function UploadStep() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="specialized-field" className="text-base font-semibold">Specialized Field (Optional)</Label>
+              <Label htmlFor="specialized-field" className="text-base font-semibold">Specialized Field</Label>
               <Select value={specializedField} onValueChange={setSpecializedField}>
                 <SelectTrigger id="specialized-field" className="text-base h-[52px]">
                   <SelectValue placeholder="Select a field" />

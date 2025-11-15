@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
 import { extractTextFromPptx, replaceTextInPptx } from '@/lib/pptx-processor';
-type Step = 'upload' | 'processing' | 'results';
+type Step = 'apiKeySetup' | 'upload' | 'processing' | 'results';
 interface ProcessingStats {
   slides: number;
   textBlocks: number;
@@ -12,14 +12,28 @@ interface ProcessingStats {
   fileName?: string;
   translatedFileUrl?: string;
 }
+interface AiModel {
+  id: string;
+  name: string;
+}
 interface LexiSlideState {
   step: Step;
+  apiKey: string;
+  isApiKeyValid: boolean;
+  isApiKeyLoading: boolean;
+  apiKeyError: string | null;
+  availableModels: AiModel[];
+  selectedModel: string;
   file: File | null;
   sourceMaterial: string;
   specializedField: string;
   processingStep: number;
   processingStatus: string;
   results: ProcessingStats | null;
+  setApiKey: (key: string) => void;
+  setSelectedModel: (model: string) => void;
+  validateApiKey: () => Promise<void>;
+  confirmApiKeySetup: () => void;
   setFile: (file: File | null) => void;
   setSourceMaterial: (source: string) => void;
   setSpecializedField: (field: string) => void;
@@ -36,18 +50,61 @@ const processingSteps = [
 ];
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
-  step: 'upload',
+  step: 'apiKeySetup',
+  apiKey: '',
+  isApiKeyValid: false,
+  isApiKeyLoading: false,
+  apiKeyError: null,
+  availableModels: [],
+  selectedModel: '',
   file: null,
   sourceMaterial: '',
   specializedField: 'Ophthalmology',
   processingStep: 0,
   processingStatus: '',
   results: null,
+  setApiKey: (key) => set({ apiKey: key, apiKeyError: null }),
+  setSelectedModel: (model) => set({ selectedModel: model }),
+  validateApiKey: async () => {
+    const { apiKey } = get();
+    set({ isApiKeyLoading: true, apiKeyError: null });
+    try {
+      const response = await fetch('/api/validate-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Invalid API Key or network error.');
+      }
+      set({
+        isApiKeyValid: true,
+        availableModels: data.data.models,
+        selectedModel: data.data.models[0]?.id || '', // Auto-select first model
+      });
+      toast.success('API Key validated successfully!');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      set({ isApiKeyValid: false, apiKeyError: errorMessage, availableModels: [] });
+      toast.error(errorMessage);
+    } finally {
+      set({ isApiKeyLoading: false });
+    }
+  },
+  confirmApiKeySetup: () => {
+    const { isApiKeyValid, selectedModel } = get();
+    if (isApiKeyValid && selectedModel) {
+      set({ step: 'upload' });
+    } else {
+      toast.error('Please validate your API key and select a model.');
+    }
+  },
   setFile: (file) => set({ file }),
   setSourceMaterial: (source) => set({ sourceMaterial: source }),
   setSpecializedField: (field) => set({ specializedField: field }),
   startProcessing: async () => {
-    const { sourceMaterial, file, specializedField } = get();
+    const { sourceMaterial, file, specializedField, apiKey, selectedModel } = get();
     if (!file) {
       toast.error("File not found for processing.");
       return;
@@ -74,6 +131,8 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
           sourceMaterial,
           textContent: translatableTexts.join('\n\n'),
           specializedField,
+          apiKey,
+          model: selectedModel,
         }),
       });
       if (!response.ok) {
@@ -96,7 +155,7 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
         step: 'results',
         results: {
           ...data.data.statistics,
-          slides: data.data.statistics.slides || 15, // Mock data if not present
+          slides: data.data.statistics.slides || 15,
           textBlocks: translatableTexts.length,
           terms: data.data.statistics.terms || Math.floor(translatableTexts.length * 1.5),
           translatedContent: data.data.translatedContent,
@@ -117,7 +176,13 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
       URL.revokeObjectURL(currentResults.translatedFileUrl);
     }
     set({
-      step: 'upload',
+      step: 'apiKeySetup',
+      apiKey: '',
+      isApiKeyValid: false,
+      isApiKeyLoading: false,
+      apiKeyError: null,
+      availableModels: [],
+      selectedModel: '',
       file: null,
       sourceMaterial: '',
       specializedField: 'Ophthalmology',
