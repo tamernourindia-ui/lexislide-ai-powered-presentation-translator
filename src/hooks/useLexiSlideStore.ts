@@ -32,7 +32,7 @@ interface LexiSlideState {
   results: ProcessingStats | null;
   setApiKey: (key: string) => void;
   setSelectedModel: (model: string) => void;
-  validateApiKey: () => Promise<void>;
+  validateApiKey: () => Promise<boolean>;
   confirmApiKeySetup: () => void;
   setFile: (file: File | null) => void;
   setSourceMaterial: (source: string) => void;
@@ -63,7 +63,7 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
   processingStep: 0,
   processingStatus: '',
   results: null,
-  setApiKey: (key) => set({ apiKey: key, apiKeyError: null }),
+  setApiKey: (key) => set({ apiKey: key, apiKeyError: null, isApiKeyValid: false }),
   setSelectedModel: (model) => set({ selectedModel: model }),
   validateApiKey: async () => {
     const { apiKey } = get();
@@ -81,13 +81,15 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
       set({
         isApiKeyValid: true,
         availableModels: data.data.models,
-        selectedModel: data.data.models[0]?.id || '', // Auto-select first model
+        selectedModel: data.data.models[0]?.id || '',
       });
       toast.success('API Key validated successfully!');
+      return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       set({ isApiKeyValid: false, apiKeyError: errorMessage, availableModels: [] });
       toast.error(errorMessage);
+      return false;
     } finally {
       set({ isApiKeyLoading: false });
     }
@@ -171,24 +173,36 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
     }
   },
   reset: () => {
-    const currentResults = get().results;
+    const { isApiKeyValid, apiKey, availableModels, selectedModel, results: currentResults } = get();
     if (currentResults?.translatedFileUrl) {
       URL.revokeObjectURL(currentResults.translatedFileUrl);
     }
-    set({
-      step: 'apiKeySetup',
-      apiKey: '',
-      isApiKeyValid: false,
-      isApiKeyLoading: false,
-      apiKeyError: null,
-      availableModels: [],
-      selectedModel: '',
-      file: null,
-      sourceMaterial: '',
-      specializedField: 'Ophthalmology',
-      processingStep: 0,
-      processingStatus: '',
-      results: null,
-    });
+    if (isApiKeyValid) {
+      set({
+        step: 'upload',
+        file: null,
+        sourceMaterial: '',
+        specializedField: 'Ophthalmology',
+        processingStep: 0,
+        processingStatus: '',
+        results: null,
+      });
+    } else {
+      set({
+        step: 'apiKeySetup',
+        apiKey: '',
+        isApiKeyValid: false,
+        isApiKeyLoading: false,
+        apiKeyError: null,
+        availableModels: [],
+        selectedModel: '',
+        file: null,
+        sourceMaterial: '',
+        specializedField: 'Ophthalmology',
+        processingStep: 0,
+        processingStatus: '',
+        results: null,
+      });
+    }
   },
 }));
