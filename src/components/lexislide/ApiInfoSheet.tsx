@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Code, Cloud, Cpu, BrainCircuit, Server, Zap } from 'lucide-react';
+import { Code, Cloud, Cpu, BrainCircuit, Server, Zap, Network } from 'lucide-react';
+import { ArchitectureDiagram } from './ArchitectureDiagram';
 interface ApiInfoSheetProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
@@ -60,6 +61,10 @@ export function ApiInfoSheet({ isOpen, setIsOpen }: ApiInfoSheetProps) {
           <Section icon={<BrainCircuit className="h-5 w-5" />} title="Artificial Intelligence">
             <TechBadge>Cloudflare AI Gateway</TechBadge>
             <TechBadge>Google Gemini 2.5 Pro</TechBadge>
+          </Section>
+          <Separator />
+          <Section icon={<Network className="h-5 w-5" />} title="Application Architecture">
+            <ArchitectureDiagram />
           </Section>
           <Separator />
           <div className="space-y-3">

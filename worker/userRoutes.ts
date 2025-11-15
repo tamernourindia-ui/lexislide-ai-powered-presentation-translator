@@ -227,12 +227,18 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             4.  The context for this translation is a presentation based on the book/article: "${sourceMaterial}". Use this context to inform your terminology choices.
             5.  Your entire response should be ONLY the translated Persian text. Do not add any explanations, greetings, or apologies.
             6.  Preserve the paragraph structure. If the input has text blocks separated by double newlines, the output should have the same structure.`;
+            const originalBlocks = textContent.split('\n\n');
             const response = await chatHandler.processMessage(
                 textContent,
                 [], // No conversation history for this one-off task
                 undefined, // No streaming
                 systemPrompt // Custom system prompt
             );
+            const translatedBlocks = response.content.split('\n\n');
+            // **INTEGRITY CHECK**
+            if (originalBlocks.length !== translatedBlocks.length) {
+                throw new Error(`Translation integrity check failed. The AI returned a different number of text blocks (${translatedBlocks.length}) than expected (${originalBlocks.length}). Please try again.`);
+            }
             const stats = {
                 source: sourceMaterial,
                 field: field,

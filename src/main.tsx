@@ -1,3 +1,4 @@
+console.log('Hello from main.tsx');
 import '@/lib/errorReporter';
 import { enableMapSet } from "immer";
 enableMapSet();

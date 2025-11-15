@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import jsPDF from 'jspdf';
+import { VAZIRMATN_FONT_BASE64 } from '@/lib/vazir-font';
 const StatCard = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) => (
   <div className="flex flex-col items-center justify-center p-4 bg-secondary rounded-lg text-center">
     <div className="text-primary mb-2">{icon}</div>
@@ -31,27 +32,31 @@ export function ResultsStep() {
   };
   const handlePdfDownload = () => {
     const doc = new jsPDF();
-    doc.setFont('helvetica', 'bold');
+    // 1. Register the custom Persian font
+    doc.addFileToVFS('Vazirmatn-Regular.ttf', VAZIRMATN_FONT_BASE64);
+    doc.addFont('Vazirmatn-Regular.ttf', 'Vazirmatn', 'normal');
+    // 2. Set the font for the document
+    doc.setFont('Vazirmatn');
     doc.text('LexiSlide Terminology Report', 105, 20, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
     doc.setFontSize(12);
-    doc.text(`Source Material: ${results.source}`, 20, 40);
-    doc.text(`Detected Field: ${results.field}`, 20, 50);
+    // Use RTL options for Persian text
+    doc.text(`منبع: ${results.source}`, 190, 40, { align: 'right' });
+    doc.text(`حوزه تخ��صی: ${results.field}`, 190, 50, { align: 'right' });
+    // English text can remain LTR
+    doc.setFont('helvetica', 'normal');
     doc.text(`Original File: ${results.fileName || 'N/A'}`, 20, 60);
     doc.setLineWidth(0.5);
     doc.line(20, 65, 190, 65);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Translation Statistics', 20, 75);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`- Slides Processed: ${results.slides}`, 25, 85);
-    doc.text(`- Text Blocks Translated: ${results.textBlocks}`, 25, 92);
-    doc.text(`- Specialized Terms Identified: ${results.terms}`, 25, 99);
+    // Switch back to Persian font for headers and stats
+    doc.setFont('Vazirmatn');
+    doc.text('آمار ترجمه', 190, 75, { align: 'right' });
+    doc.text(`- اسلایدهای پردازش شده: ${results.slides}`, 190, 85, { align: 'right' });
+    doc.text(`- بلوک‌های متنی ترجمه شده: ${results.textBlocks}`, 190, 92, { align: 'right' });
+    doc.text(`- اصطلاحات تخصصی شناسایی شده: ${results.terms}`, 190, 99, { align: 'right' });
     doc.line(20, 105, 190, 105);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Translated Content Preview:', 20, 115);
-    doc.setFont('helvetica', 'normal');
-    const splitText = doc.splitTextToSize(results.translatedContent || 'No content available.', 170);
-    doc.text(splitText, 20, 125);
+    doc.text('پیش‌نمایش محتوای ترجمه شده:', 190, 115, { align: 'right' });
+    const splitText = doc.splitTextToSize(results.translatedContent || 'محتوایی برای نمایش وجود ندارد.', 170);
+    doc.text(splitText, 190, 125, { align: 'right' });
     const baseName = results.fileName?.replace('.pptx', '') || 'report';
     doc.save(`${baseName}-report.pdf`);
   };
