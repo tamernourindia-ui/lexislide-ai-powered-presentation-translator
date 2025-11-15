@@ -11,7 +11,7 @@ const isTranslatable = (text: string): boolean => {
   const wordCount = trimmed.split(/\s+/).length;
   if (wordCount <= 5 && trimmed === trimmed.toUpperCase()) return false;
   // Rule 3: Ignore text starting with numbers or list markers.
-  if (/^(\d+\.?\s*|\(?[a-zA-Z0-9]\)|���|-)/.test(trimmed)) return false;
+  if (/^(\d+\.?\s*|\(?[a-zA-Z0-9]\)|•|-)/.test(trimmed)) return false;
   // Rule 4: Prioritize text that looks like a sentence (starts with capital, ends with punctuation).
   if (/^[A-Z].*[.!?]$/s.test(trimmed)) return true; // Added 's' flag for multiline
   // Rule 5: A good fallback for descriptive content is a reasonable word count.
@@ -74,6 +74,10 @@ export const replaceTextInPptx = async (
     let content = await zip.file(slideFile)?.async('string');
     if (content) {
       translationMap.forEach((translated, original) => {
+        // Do not replace if translated text is empty or same as original
+        if (!translated.trim() || translated.trim() === original.trim()) {
+          return;
+        }
         const escapedOriginal = xmlEscape(original);
         const escapedTranslated = xmlEscape(translated);
         // This regex finds the text run (<a:r>) containing the original text.
@@ -94,7 +98,7 @@ export const replaceTextInPptx = async (
             // Remove existing Latin font if present
             let cleanedRpr = rPr.replace(/<a:latin[^>]*>/g, '');
             // Add Complex Script font for Persian
-            return cleanedRpr.slice(0, -1) + '><a:cs typeface="B Nazanin"/><a:ea typeface="Tahoma"/>';
+            return cleanedRpr.slice(0, -1) + '><a:cs typeface="Arial"/><a:ea typeface="Tahoma"/>';
           });
           // Finally, replace the text content
           return newParagraphProps.replace(
