@@ -26,13 +26,15 @@ export async function listModels(baseUrl: string, apiKey: string) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
     const response = await fetch(url);
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = (await response.json().catch(() => ({}))) as {
+        error?: { message?: string };
+      };
       if (errorData?.error?.message?.includes('API key not valid')) {
         throw new Error("Authentication failed. Please check your API key.");
       }
       throw new Error(`Failed to fetch models: ${response.statusText}`);
     }
-    const data = await response.json();
+    const data = (await response.json()) as { models: any[] };
     const models = data.models
       .filter((model: any) =>
         model.supportedGenerationMethods.includes('generateContent') &&
