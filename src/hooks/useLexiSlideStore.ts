@@ -7,7 +7,8 @@ interface ProcessingStats {
   terms: number;
   source: string;
   field: string;
-  translatedContent?: string; // To hold the real translated text
+  translatedContent?: string;
+  fileName?: string;
 }
 interface LexiSlideState {
   step: Step;
@@ -42,7 +43,8 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
   setFile: (file) => set({ file }),
   setSourceMaterial: (source) => set({ sourceMaterial: source }),
   startProcessing: async () => {
-    const { sourceMaterial } = get();
+    const { sourceMaterial, file } = get();
+    const fileName = file?.name;
     set({ step: 'processing', processingStep: 0, processingStatus: 'Initializing...' });
     try {
       // Simulate frontend steps before API call
@@ -78,6 +80,7 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
         results: {
           ...data.data.statistics,
           translatedContent: data.data.translatedContent,
+          fileName: fileName,
         },
       });
       toast.success('Translation completed successfully!');
