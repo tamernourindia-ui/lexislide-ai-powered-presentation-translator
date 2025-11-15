@@ -189,9 +189,12 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     // 🤖 AI Extension Point: Add more custom routes here
     app.post('/api/translate', async (c) => {
         try {
-            const { sourceMaterial } = await c.req.json();
+            const { sourceMaterial, textContent } = await c.req.json();
             if (!sourceMaterial) {
                 return c.json({ success: false, error: 'Source material is required' }, { status: 400 });
+            }
+            if (!textContent) {
+                return c.json({ success: false, error: 'Text content for translation is required' }, { status: 400 });
             }
             const chatHandler = new ChatHandler(
                 c.env.CF_AI_BASE_URL,
@@ -200,23 +203,19 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             );
             const systemPrompt = `You are an expert translator specializing in medical texts, specifically in the field of Ophthalmology. Your task is to translate English presentation content into professional, academic Persian.
             **CRITICAL RULES:**
-            1.  **Translate ONLY descriptive content and paragraphs.**
-            2.  **DO NOT translate titles, headings, captions, or text within charts/tables.**
-            3.  If a specialized term has no direct, commonly-used Persian equivalent, **keep it in English.**
-            4.  Ensure all translated text is grammatically correct, fluent, and uses appropriate academic tone.
-            5.  The context for this translation is a presentation based on the book/article: "${sourceMaterial}". Use this context to inform your terminology choices.
-            6.  Your entire response should be ONLY the translated Persian text. Do not add any explanations, greetings, or apologies.`;
-            const mockContentToTranslate = `This slide discusses the primary causes of retinal detachment, a serious condition where the retina at the back of the eye pulls away from its normal position. The patient presented with symptoms of decreased visual acuity. Types of surgical interventions include scleral buckle procedure.`;
+            1.  **Translate ONLY the provided text.**
+            2.  If a specialized term has no direct, commonly-used Persian equivalent, **keep it in English.**
+            3.  Ensure all translated text is grammatically correct, fluent, and uses an appropriate academic tone.
+            4.  The context for this translation is a presentation based on the book/article: "${sourceMaterial}". Use this context to inform your terminology choices.
+            5.  Your entire response should be ONLY the translated Persian text. Do not add any explanations, greetings, or apologies.
+            6.  Preserve the paragraph structure. If the input has text blocks separated by double newlines, the output should have the same structure.`;
             const response = await chatHandler.processMessage(
-                mockContentToTranslate,
+                textContent,
                 [], // No conversation history for this one-off task
                 undefined, // No streaming
                 systemPrompt // Custom system prompt
             );
             const mockStats = {
-                slides: Math.floor(Math.random() * 20) + 30, // 30-50
-                textBlocks: Math.floor(Math.random() * 50) + 100, // 100-150
-                terms: Math.floor(Math.random() * 30) + 50, // 50-80
                 source: sourceMaterial,
                 field: 'Ophthalmology (Auto-Detected)',
             };

@@ -18,17 +18,16 @@ export function ResultsStep() {
   const reset = useLexiSlideStore(s => s.reset);
   if (!results) return null;
   const handlePptxDownload = () => {
-    const mockContent = `This is a mock translated PowerPoint file for ${results.fileName}. The actual file would contain the translated content.`;
-    const blob = new Blob([mockContent], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
-    const url = URL.createObjectURL(blob);
+    if (!results.translatedFileUrl) {
+      return;
+    }
     const a = document.createElement('a');
-    a.href = url;
+    a.href = results.translatedFileUrl;
     const baseName = results.fileName?.replace('.pptx', '') || 'presentation';
     a.download = `${baseName}-translated.pptx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
   const handlePdfDownload = () => {
     const doc = new jsPDF();
@@ -104,7 +103,7 @@ export function ResultsStep() {
                 <FileText className="h-12 w-12 text-primary mb-3" />
                 <h4 className="font-semibold text-lg">Translated Presentation</h4>
                 <p className="text-muted-foreground text-sm mb-4 text-center">Formatted in Persian with RTL text.</p>
-                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handlePptxDownload}>
+                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handlePptxDownload} disabled={!results.translatedFileUrl}>
                   <Download className="mr-2 h-4 w-4" /> Download .pptx
                 </Button>
               </div>
