@@ -23,25 +23,32 @@ type InternalFunctionCall = {
  */
 export async function listModels(baseUrl: string, apiKey: string) {
   try {
-    // The Google SDK doesn't have a direct `listModels` method.
-    // We can validate the key by instantiating the client and attempting a basic operation.
-    // Here, we'll just instantiate and assume success if no error is thrown.
-    // The baseUrl is not used by the Google SDK client directly.
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // This will throw an error if the API key is invalid on the first API call.
-    // Since there's no listModels, we'll try getting a model.
-    genAI.getGenerativeModel({ model: 'gemini-pro' });
-    // Since we cannot dynamically list models, return a predefined list of common models.
-    const staticModels = [
-      { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro' },
-      { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash' },
-      { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro' },
-      { id: 'gemini-pro', name: 'Gemini Pro' },
-      { id: 'gemini-pro-vision', name: 'Gemini Pro Vision' },
-    ].sort((a, b) => a.name.localeCompare(b.name));
-    return staticModels;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (errorData?.error?.message?.includes('API key not valid')) {
+        throw new Error("Authentication failed. Please check your API key.");
+      }
+      throw new Error(`Failed to fetch models: ${response.statusText}`);
+    }
+    const data = await response.json();
+    const models = data.models
+      .filter((model: any) =>
+        model.supportedGenerationMethods.includes('generateContent') &&
+        model.name.includes('models/gemini')
+      )
+      .map((model: any) => ({
+        id: model.name,
+        name: model.displayName,
+      }))
+      .sort((a: any, b: any) => a.name.localeCompare(b.name));
+    return models;
   } catch (error: any) {
-    console.error("Failed to validate API key with Google:", error);
+    console.error("Failed to list models from Google:", error);
+    if (error.message.includes('Authentication failed')) {
+      throw error;
+    }
     if (error.message.includes('API key not valid')) {
       throw new Error("Authentication failed. Please check your API key.");
     }
