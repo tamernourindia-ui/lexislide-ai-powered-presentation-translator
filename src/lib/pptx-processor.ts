@@ -79,7 +79,7 @@ export const replaceTextInPptx = async (
         // This regex finds the text run (<a:r>) containing the original text.
         // It captures the paragraph properties (<a:pPr>) and the run properties (<a:rPr>).
         const searchRegex = new RegExp(
-          `(<a:pPr[^>]*>.*?<\/a:pPr>\\s*<a:r>\\s*<a:rPr[^>]*>.*?<\/a:rPr>\\s*<a:t>${escapedOriginal}<\/a:t>\\s*<\/a:r>)`,
+          `(<a:pPr[^>]*>.*?</a:pPr>\\s*<a:r>\\s*<a:rPr[^>]*>.*?</a:rPr>\\s*<a:t>${escapedOriginal}</a:t>\\s*</a:r>)`,
           'g'
         );
         content = content!.replace(searchRegex, (match) => {

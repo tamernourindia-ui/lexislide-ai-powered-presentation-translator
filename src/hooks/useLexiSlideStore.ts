@@ -16,11 +16,13 @@ interface LexiSlideState {
   step: Step;
   file: File | null;
   sourceMaterial: string;
+  specializedField: string;
   processingStep: number;
   processingStatus: string;
   results: ProcessingStats | null;
   setFile: (file: File | null) => void;
   setSourceMaterial: (source: string) => void;
+  setSpecializedField: (field: string) => void;
   startProcessing: () => Promise<void>;
   reset: () => void;
 }
@@ -37,13 +39,15 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
   step: 'upload',
   file: null,
   sourceMaterial: '',
+  specializedField: 'Ophthalmology',
   processingStep: 0,
   processingStatus: '',
   results: null,
   setFile: (file) => set({ file }),
   setSourceMaterial: (source) => set({ sourceMaterial: source }),
+  setSpecializedField: (field) => set({ specializedField: field }),
   startProcessing: async () => {
-    const { sourceMaterial, file } = get();
+    const { sourceMaterial, file, specializedField } = get();
     if (!file) {
       toast.error("File not found for processing.");
       return;
@@ -53,7 +57,7 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
     try {
       await delay(500);
       set({ processingStep: 1, processingStatus: processingSteps[1].text });
-      const { allTexts, translatableTexts } = await extractTextFromPptx(file);
+      const { translatableTexts } = await extractTextFromPptx(file);
       if (translatableTexts.length === 0) {
         toast.warning("No translatable text found in the presentation.");
         set({ step: 'upload' });
@@ -66,7 +70,11 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
       const response = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceMaterial, textContent: translatableTexts.join('\n\n') }),
+        body: JSON.stringify({
+          sourceMaterial,
+          textContent: translatableTexts.join('\n\n'),
+          specializedField,
+        }),
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred.' }));
@@ -112,6 +120,7 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
       step: 'upload',
       file: null,
       sourceMaterial: '',
+      specializedField: 'Ophthalmology',
       processingStep: 0,
       processingStatus: '',
       results: null,
