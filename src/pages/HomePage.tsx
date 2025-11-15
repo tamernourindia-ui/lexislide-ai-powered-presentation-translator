@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { BrainCircuit } from 'lucide-react';
+import { BrainCircuit, Code } from 'lucide-react';
 import { useLexiSlideStore } from '@/hooks/useLexiSlideStore';
 import { UploadStep } from '@/components/lexislide/UploadStep';
 import { ProcessingStep } from '@/components/lexislide/ProcessingStep';
 import { ResultsStep } from '@/components/lexislide/ResultsStep';
+import { ApiInfoSheet } from '@/components/lexislide/ApiInfoSheet';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Button } from '@/components/ui/button';
 export function HomePage() {
   const step = useLexiSlideStore(s => s.step);
+  const [isApiInfoOpen, setIsApiInfoOpen] = useState(false);
   const renderStep = () => {
     switch (step) {
       case 'upload':
@@ -30,7 +34,12 @@ export function HomePage() {
                 <BrainCircuit className="h-8 w-8 text-primary" />
                 <h1 className="text-2xl font-bold font-sora tracking-tight">LexiSlide</h1>
               </div>
-              <ThemeToggle className="relative top-0 right-0" />
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => setIsApiInfoOpen(true)}>
+                  <Code className="h-5 w-5" />
+                </Button>
+                <ThemeToggle className="relative top-0 right-0" />
+              </div>
             </div>
           </div>
         </header>
@@ -53,6 +62,7 @@ export function HomePage() {
         </footer>
       </div>
       <Toaster richColors position="top-center" />
+      <ApiInfoSheet isOpen={isApiInfoOpen} setIsOpen={setIsApiInfoOpen} />
     </>
   );
 }
