@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { KeyRound, Check, AlertTriangle, Loader2, Wand2, ExternalLink } from 'lucide-react';
 import { useLexiSlideStore } from '@/hooks/useLexiSlideStore';
@@ -24,14 +23,6 @@ export function ApiKeySetupStep() {
       validateApiKey();
     }
   };
-  useEffect(() => {
-    if (isApiKeyValid && selectedModel) {
-      const timer = setTimeout(() => {
-        confirmApiKeySetup();
-      }, 500); // A small delay for better UX
-      return () => clearTimeout(timer);
-    }
-  }, [isApiKeyValid, selectedModel, confirmApiKeySetup]);
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <Card className="w-full max-w-2xl mx-auto overflow-hidden">
@@ -114,17 +105,8 @@ export function ApiKeySetupStep() {
             onClick={confirmApiKeySetup}
             disabled={!isApiKeyValid || !selectedModel}
           >
-            {isApiKeyValid && selectedModel ? (
-              <>
-                <Check className="mr-2 h-5 w-5" />
-                Proceeding...
-              </>
-            ) : (
-              <>
-                <Wand2 className="mr-2 h-5 w-5" />
-                Continue to Translator
-              </>
-            )}
+            <Wand2 className="mr-2 h-5 w-5" />
+            Continue to Translator
           </Button>
         </CardFooter>
       </Card>
