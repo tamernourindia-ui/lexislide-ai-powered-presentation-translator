@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { extractTextFromPptx, replaceTextInPptx } from '@/lib/pptx-processor';
 type Step = 'apiKeySetup' | 'upload' | 'processing' | 'results';
 interface Terminology {
@@ -74,18 +75,27 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
     const { apiKey } = get();
     set({ isApiKeyLoading: true, apiKeyError: null });
     try {
-      const response = await fetch('/api/validate-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey }),
-      });
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
       const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Invalid API Key or network error.');
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Invalid API Key or network error.');
+      }
+      const geminiModels = data.models
+        .filter((model: any) =>
+          model.name.includes('gemini') &&
+          model.supportedGenerationMethods.includes('generateContent')
+        )
+        .map((model: any) => ({
+          id: model.name,
+          name: model.displayName,
+        }))
+        .sort((a: AiModel, b: AiModel) => a.name.localeCompare(b.name));
+      if (geminiModels.length === 0) {
+        throw new Error("No compatible Gemini models found for this API key.");
       }
       set({
         isApiKeyValid: true,
-        availableModels: data.data.models,
+        availableModels: geminiModels,
         selectedModel: '',
       });
       toast.success('API Key validated successfully!');
@@ -131,26 +141,41 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
       set({ processingStep: 2, processingStatus: processingSteps[2].text });
       await delay(500);
       set({ processingStep: 3, processingStatus: processingSteps[3].text });
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourceMaterial,
-          textContent: translatableTexts.join('\n\n'),
-          specializedField,
-          apiKey,
-          model: selectedModel,
-        }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred.' }));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: selectedModel.replace('models/', '') });
+      const systemPrompt = `
+        You are an expert translator specializing in ${specializedField}. Your task is to translate English presentation content to professional Persian.
+        Context: The content is from a source titled "${sourceMaterial}".
+        Rules:
+        1. Translate only the provided text blocks.
+        2. Maintain a professional, academic tone.
+        3. DO NOT translate titles, captions, or data labels. Only translate descriptive paragraphs.
+        4. If a specialized term has no standard Persian equivalent, keep it in English.
+        5. Respond ONLY with a single JSON object in a markdown block. The JSON object must have two keys:
+           - "translatedContent": A single string where each translated text block is separated by "\\n\\n".
+           - "terminology": An array of objects, each with "english" and "persian" keys, for specialized terms you identified.
+        Example Response:
+        \`\`\`json
+        {
+          "translatedContent": "ترجمه بلو�� اول.\\n\\nترجمه بلوک دوم.",
+          "terminology": [
+            { "english": "Retina", "persian": "شبکیه" },
+            { "english": "Cataract", "persian": "آب مرو��رید" }
+          ]
+        }
+        \`\`\`
+      `;
+      const result = await model.generateContent([systemPrompt, translatableTexts.join('\n\n')]);
+      const responseText = result.response.text();
+      const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/);
+      if (!jsonMatch || !jsonMatch[1]) {
+        throw new Error("AI did not return a valid JSON response.");
       }
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || 'API returned an error.');
+      const parsedData = JSON.parse(jsonMatch[1]);
+      const translatedLines = parsedData.translatedContent.split('\n\n');
+      if (translatedLines.length !== translatableTexts.length) {
+        throw new Error(`Translation integrity check failed. Expected ${translatableTexts.length} blocks, but received ${translatedLines.length}.`);
       }
-      const translatedLines = data.data.translatedContent.split('\n\n');
       await delay(500);
       set({ processingStep: 4, processingStatus: processingSteps[4].text });
       const translatedBlob = await replaceTextInPptx(file, translatableTexts, translatedLines);
@@ -158,15 +183,16 @@ export const useLexiSlideStore = create<LexiSlideState>((set, get) => ({
       await delay(500);
       set({ processingStep: 5, processingStatus: processingSteps[5].text });
       await delay(500);
-      const terminology = data.data.statistics.terminology || [];
+      const terminology = parsedData.terminology || [];
       set({
         step: 'results',
         results: {
-          ...data.data.statistics,
-          slides: data.data.statistics.slides || 15,
+          slides: 15, // This is a mock value, as we can't get it client-side easily
           textBlocks: translatableTexts.length,
           terms: terminology.length,
-          translatedContent: data.data.translatedContent,
+          source: sourceMaterial,
+          field: specializedField,
+          translatedContent: parsedData.translatedContent,
           fileName: fileName,
           translatedFileUrl: translatedFileUrl,
           terminology: terminology,
