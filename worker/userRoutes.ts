@@ -233,6 +233,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             const response = await chatHandler.processMessage(
                 textContent,
                 [], // No conversation history for this one-off task
+                c.env,
                 undefined, // No streaming
                 systemPrompt // Custom system prompt
             );

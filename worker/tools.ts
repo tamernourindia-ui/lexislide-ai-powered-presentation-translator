@@ -104,8 +104,7 @@ const formatSearchResults = (data: SerpApiResponse, query: string, numResults: n
     : `No results found for "${query}". Try: https://www.google.com/search?q=${encodeURIComponent(query)}`;
 };
 
-async function performWebSearch(query: string, numResults = 5): Promise<string> {
-  const apiKey = process.env.SERPAPI_KEY;
+async function performWebSearch(query: string, numResults = 5, apiKey?: string): Promise<string> {
   if (!apiKey) {
     return `🔍 Web search requires SerpAPI key. Get one at https://serpapi.com/\nFallback: https://www.google.com/search?q=${encodeURIComponent(query)}`;
   }
@@ -158,7 +157,11 @@ async function fetchWebContent(url: string): Promise<string> {
   }
 }
 
-export async function executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
+export async function executeTool(
+  name: string,
+  args: Record<string, unknown>,
+  env?: { SERPAPI_KEY?: string }
+): Promise<ToolResult> {
   try {
     switch (name) {
       case 'get_weather':
@@ -168,7 +171,7 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
           condition: ['Sunny', 'Cloudy', 'Rainy', 'Snowy'][Math.floor(Math.random() * 4)],
           humidity: Math.floor(Math.random() * 100)
         };
-      
+
       case 'web_search': {
         const { query, url, num_results = 5 } = args;
         if (typeof url === 'string') {
@@ -176,12 +179,12 @@ export async function executeTool(name: string, args: Record<string, unknown>): 
           return { content };
         }
         if (typeof query === 'string') {
-          const content = await performWebSearch(query, num_results as number);
+          const content = await performWebSearch(query, num_results as number, env?.SERPAPI_KEY);
           return { content };
         }
         return { error: 'Either query or url parameter is required' };
       }
-      
+
       default: {
         const content = await mcpManager.executeTool(name, args);
         return { content };
