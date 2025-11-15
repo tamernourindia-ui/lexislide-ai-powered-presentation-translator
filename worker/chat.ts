@@ -112,7 +112,10 @@ export class ChatHandler {
     const chat = this.client.startChat({
       history,
       tools: [{ functionDeclarations: tools }],
-      systemInstruction: system,
+      systemInstruction: {
+        role: 'user',
+        parts: [{ text: system }],
+      },
     });
 
     if (onChunk) {
@@ -220,7 +223,7 @@ export class ChatHandler {
   /**
    * Build conversation messages for OpenAI API
    */
-  private buildConversationMessages(userMessage: string, history: Message[], customSystemPrompt?: string): { system?: string, history: Content[] } {
+  private buildConversationMessages(userMessage: string, history: Message[], customSystemPrompt?: string): { system: string, history: Content[] } {
     const defaultSystemPrompt = 'You are a helpful AI assistant that helps users build and deploy web applications. You provide clear, concise guidance on development, deployment, and troubleshooting. Keep responses practical and actionable.';
     
     const system = customSystemPrompt || defaultSystemPrompt;
