@@ -47,8 +47,19 @@ export function DemoPage() { // Don't touch this exporting, Its a named export
   }, [isDark]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsDark(e.matches);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatState.messages, chatState.streamingMessage]);
+  }, [chatState.messages]);
 
   // Track if current session has unsaved messages
   useEffect(() => {
@@ -175,19 +186,31 @@ export function DemoPage() { // Don't touch this exporting, Its a named export
   const handleSwitchSession = async (sessionId: string) => {
     // Save current session if needed before switching
     await saveCurrentSessionIfNeeded();
-    
+
     // Switch to selected session
     chatService.switchSession(sessionId);
-    setChatState(prev => ({
-      ...prev,
-      sessionId: sessionId,
-      messages: [],
-      streamingMessage: '',
-      isProcessing: false
-    }));
-    
+
     // Load the selected session's messages
-    await loadCurrentSession();
+    const response = await chatService.getMessages();
+    if (response.success && response.data) {
+      setChatState(prev => ({
+        ...prev,
+        ...response.data,
+        sessionId: sessionId, // Ensure sessionId is synced
+        streamingMessage: '',
+        isProcessing: false
+      }));
+    } else {
+      // If loading fails, still update the session ID and clear messages
+      setChatState(prev => ({
+        ...prev,
+        sessionId: sessionId,
+        messages: [],
+        streamingMessage: '',
+        isProcessing: false
+      }));
+    }
+
     await loadSessions();
   };
 
